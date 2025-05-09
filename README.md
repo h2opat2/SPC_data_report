@@ -8,3 +8,4 @@ Steps to achieve the goal:
 1)  read all generated report files
 2)  merge measurements from files
 3)  make a statistical analysis and generate SPC report in CSV format
+4)  final report.csv is stored in Data folder together with input measurement report files
