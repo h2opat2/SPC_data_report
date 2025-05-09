@@ -68,4 +68,3 @@ class Characteristic:
 
     def get_char_type(self):
         return self.char_type_dict[self.code]
-

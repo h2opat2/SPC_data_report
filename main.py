@@ -80,7 +80,6 @@ def create_output_data_list():
 
         csv_data.append(char_output)
         counter+=1
-
     return csv_data
 
 output = create_output_data_list()
