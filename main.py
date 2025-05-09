@@ -2,38 +2,39 @@ import os
 import re
 from Characteristic import Characteristic
 
-
-# Reading measurement report files
-data_folder = "Data"
-report_list_all = os.listdir(data_folder)
-
-# get only DTA files
-report_list = []
-for file in report_list_all:
-    if os.path.isfile(os.path.join(data_folder, file)) and file.endswith(".dta"):
-        report_list.append(file)
-
 characteristics = {}
 
-# read files
-for file in report_list:
-    with open(os.path.join(data_folder, file), "r") as f:
-        for row in f:
-            parts = re.split(r'\s+', row.strip())
-            characteristic = Characteristic(parts[1],  # name
-                                            parts[2],  # code
-                                            parts[7],  # meas
-                                            parts[8],  # nom
-                                            parts[9],  # dev
-                                            parts[10], # tol upper
-                                            parts[11], # tol lower
-                                            parts[13]  # error
-                                            )
+# Create characteristic dictionary from report files
+def read_data(folder_name):
 
-            # add characteristic to characteristics dictionary
-            if characteristic.name not in characteristics:
-                characteristics[characteristic.name] = []
-            characteristics[characteristic.name].append(characteristic)
+    # Reading measurement report files
+    report_list_all = os.listdir(folder_name)
+
+    # get only DTA files
+    report_list = []
+    for file in report_list_all:
+        if os.path.isfile(os.path.join(folder_name, file)) and file.endswith(".dta"):
+            report_list.append(file)
+
+    # read files
+    for file in report_list:
+        with open(os.path.join(folder_name, file), "r") as f:
+            for row in f:
+                parts = re.split(r'\s+', row.strip())
+                characteristic = Characteristic(parts[1],  # name
+                                                parts[2],  # code
+                                                parts[7],  # meas
+                                                parts[8],  # nom
+                                                parts[9],  # dev
+                                                parts[10], # tol upper
+                                                parts[11], # tol lower
+                                                parts[13]  # error
+                                                )
+
+                # add characteristic to characteristics dictionary
+                if characteristic.name not in characteristics:
+                    characteristics[characteristic.name] = []
+                characteristics[characteristic.name].append(characteristic)
 
 # get measured values and create measurement list for characteristic
 def get_measurements(char_name):
@@ -82,6 +83,8 @@ def create_output_data_list():
         counter+=1
     return csv_data
 
+
+read_data("Data")
 output = create_output_data_list()
 
 
