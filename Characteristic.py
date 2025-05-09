@@ -52,8 +52,8 @@ class Characteristic:
     }
 
     def __init__(self, name_feature, code, meas, nom, dev, tol_top, tol_bottom, error):
-        self.__name_feature = name_feature
-        self.__code = code
+        self.feature_name = name_feature
+        self.code = code
         self.char_type = self.get_char_type()
         self.name = name_feature + " " + self.char_type
         self.nom = nom
@@ -67,5 +67,5 @@ class Characteristic:
         return f"{self.name}, {self.nom}, {self.meas}, {self.dev}, Is OK: {str(not float(self.error)>0.0)}"
 
     def get_char_type(self):
-        return self.char_type_dict[self.__code]
+        return self.char_type_dict[self.code]
 
