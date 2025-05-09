@@ -1,8 +1,11 @@
 import os
 import re
+
+from CharacteristicRecord import CharacteristicRecord
 from Characteristic import Characteristic
 
 characteristics = {}
+measurement_count = 0
 
 # Create characteristic dictionary from report files
 def read_data(folder_name):
@@ -16,12 +19,15 @@ def read_data(folder_name):
         if os.path.isfile(os.path.join(folder_name, file)) and file.endswith(".dta"):
             report_list.append(file)
 
+    global measurement_count
+    measurement_count = len(report_list)
+
     # read files
     for file in report_list:
         with open(os.path.join(folder_name, file), "r") as f:
             for row in f:
                 parts = re.split(r'\s+', row.strip())
-                characteristic = Characteristic(parts[1],  # name
+                characteristic_record = CharacteristicRecord(parts[1],  # name
                                                 parts[2],  # code
                                                 parts[7],  # meas
                                                 parts[8],  # nom
@@ -32,59 +38,87 @@ def read_data(folder_name):
                                                 )
 
                 # add characteristic to characteristics dictionary
-                if characteristic.name not in characteristics:
-                    characteristics[characteristic.name] = []
-                characteristics[characteristic.name].append(characteristic)
-
-# get measured values and create measurement list for characteristic
-def get_measurements(char_name):
-    measurements = []
-    for char_item in characteristics[char_name]:
-        measurements.append(float(char_item.meas))
-    return measurements
-
-# get characteristic properties based on first record
-def get_char_properties(char_name):
-    char0 = characteristics[char_name][0]
-    properties = [
-        char0.feature_name,
-        char0.char_type,
-        char0.nom,
-        char0.tol_bottom,
-        char0.tol_top]
-    return properties
+                if characteristic_record.name not in characteristics:
+                    characteristics[characteristic_record.name] = Characteristic(characteristic_record)
+                characteristics[characteristic_record.name].insert_measurement(float(characteristic_record.meas))
 
 # print out characteristic info
-def print_char_info(counter, char_properties, char_measurements):
-    print(f"\n{counter:03d})")
+def print_char_info(counter, char):
+
+    print(f"\n" + "_" * 50)
+    print(f"{counter:03d})")
+
     print("Characteristic properties:")
-    print(f"{"Name:".ljust(15)}{char_properties[0]}\n"
-          f"{"Type:".ljust(15)}{char_properties[1]}\n"
-          f"{"Nominal:".ljust(15)}{char_properties[2]}\n"
-          f"{"Tolerances:".ljust(15)}{char_properties[3]}, {char_properties[4]}")
+    print(f"{"Name:".ljust(15)}{char.feature_name}\n"
+          f"{"Type:".ljust(15)}{char.char_type}\n"
+          f"{"Nominal:".ljust(15)}{char.nom}\n"
+          f"{"Tolerances:".ljust(15)}{char.tol_bottom}, {char.tol_top}\n")
     print("Measured values [mm]:")
-    print(char_measurements)
+    print(char.meas)
+    print("\nStatistics [mm]:")
+    print(f"Mean: {char.mean:.4f}")
+    print(f"Standard deviation: {char.std:.4f}")
+    print(f"Min. value: {char.min:.4f}")
+    print(f"Max. value: {char.max:.4f}")
+    print(f"Range: {char.range:.4f}")
+    print(f"Status: {char.status}")
+
 
 # create final output list of characteristic in csv format
 def create_output_data_list():
-    csv_data = []
+    # header of CSV
+    meas_header = []
+    for i in range(measurement_count):
+        meas_header.append(f"Meas {i+1:02d}")
+    header = [
+        "Name",
+        "Type",
+        "Nominal",
+        "Low tolerance",
+        "High tolerance",
+        ",".join(meas_header),
+        "Mean",
+        "Standard deviation",
+        "Min value",
+        "Max value",
+        "Range",
+        "Status"
+    ]
+
+    csv_data = [",".join(header)]
+
+    # one row per characteristic
     counter=1
-    for char in characteristics:
+    for key in characteristics:
 
-        char_output = get_char_properties(char)
-        char_measurements = get_measurements(char)
+        char = characteristics[key]
 
-        print_char_info(counter, char_output, char_measurements)
+        # compute statistics of characteristic
+        char.compute_statistics()
 
-        char_measurements_str = [str(x) for x in char_measurements]
-        char_output.extend(char_measurements_str)
+        # append row to csv output list
+        csv_data.append(char.csv_format())
 
-        csv_data.append(char_output)
-        counter+=1
+        print_char_info(counter, char)
+
+        counter += 1
+
     return csv_data
 
+# write csv file into specified directory
+def write_to_file(folder_name, csv_data):
+    with open(os.path.join(folder_name, "report.csv"), "w") as f:
+        for row in csv_data:
+            f.write(row + "\n")
 
+# running program
 read_data("Data")
 output = create_output_data_list()
+
+write_to_file("Data", output)
+
+
+
+
 
 

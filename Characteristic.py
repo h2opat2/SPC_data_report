@@ -1,70 +1,62 @@
+import statistics
 
 class Characteristic:
-    char_type_dict ={
-        "01": "X",
-        "02": "Y",
-        "03": "Z",
-        "04": "Diameter",
-        "05": "Radius",
-        "06": "Angle",
-        "07": "Length",
-        "08": "Width",
-        "09": "Point-Profile",
-        "10": "TruePosition-Radius",
-        "11": "TruePosition-Angle",
-        "12": "Roundness",
-        "13": "Flatness",
-        "14": "Straightness",
-        "15": "X.D.Cosine",
-        "16": "Y.D.Cosine",
-        "17": "Z.D.Cosine",
-        "18": "Laser",
-        "19": "Inc.Angle",
-        "20": "Straight_P",
-        "21": "Straight_D",
-        "22": "Straight_X",
-        "23": "Straight_Y",
-        "24": "Straight_Z",
-        "25": "Parallel",
-        "26": "Parallel_P",
-        "27": "Parallel_D",
-        "28": "Parallel_X",
-        "29": "Parallel_Y",
-        "30": "Parallel_Z",
-        "31": "Square",
-        "32": "Square_P",
-        "33": "Square_D",
-        "34": "Square_X",
-        "35": "Square_Y",
-        "36": "Square_Z",
-        "37": "Angular",
-        "38": "Angular_P",
-        "39": "Angular_D",
-        "40": "Concentric",
-        "41": "TruePosition-Diameter",
-        "42": "Cylindric",
-        "43": "Max-Diam",
-        "44": "Min-Diam",
-        "50": "Position2D",
-        "51": "Position3D",
-        "52": "Line-Profile",
-        "60": "Distance-P2P"
-    }
 
-    def __init__(self, name_feature, code, meas, nom, dev, tol_top, tol_bottom, error):
-        self.feature_name = name_feature
-        self.code = code
-        self.char_type = self.get_char_type()
-        self.name = name_feature + " " + self.char_type
-        self.nom = nom
-        self.meas = meas
-        self.dev = dev
-        self.tol_top = tol_top
-        self.tol_bottom = tol_bottom
-        self.error = error
+    def __init__(self,characteristic_record):
+        self.feature_name = characteristic_record.feature_name
+        self.char_type = characteristic_record.char_type
+        self.nom = float(characteristic_record.nom)
+        self.tol_top = float(characteristic_record.tol_top)
+        self.tol_bottom = float(characteristic_record.tol_bottom)
+        self.meas = []
+        self.mean = None
+        self.std = None
+        self.max = None
+        self.min = None
+        self.range = None
+        self.status = None
+        self.in_tol = None
+
 
     def __str__(self):
-        return f"{self.name}, {self.nom}, {self.meas}, {self.dev}, Is OK: {str(not float(self.error)>0.0)}"
+        return f"{self.feature_name}, {self.char_type}, {self.nom}, {self.tol_bottom}, {self.tol_top},  {self.meas}"
 
-    def get_char_type(self):
-        return self.char_type_dict[self.code]
+
+    def insert_measurement(self,value):
+        self.meas.append(value)
+
+    def compute_statistics(self):
+        self.mean = statistics.mean(self.meas)
+        self.std = statistics.stdev(self.meas)
+        self.max = max(self.meas)
+        self.min = min(self.meas)
+        self.range = abs(self.max - self.min)
+
+        upper_value = self.nom + self.tol_top
+        lower_value = self.nom + self.tol_bottom
+        self.in_tol = [value for value in self.meas if lower_value <= value <= upper_value]
+        out_tol = [value for value in self.meas if value < lower_value or value > upper_value]
+
+        if len(out_tol) > 0:
+            self.status = f"Failed - {len(self.in_tol)}/{len(self.meas)} OK = {len(self.in_tol)/len(self.meas)*100:.0f} %"
+        else:
+            self.status = f"Successful measurement! - {len(self.in_tol)}/{len(self.meas)} OK = {len(self.in_tol)/len(self.meas)*100:.0f} %"
+
+    def csv_format(self):
+        str_measurements = ",".join([f"{x:.4f}" for x in self.meas])
+        row = [
+            self.feature_name,
+            self.char_type,
+            f"{self.nom:.4f}",
+            f"{self.tol_bottom:.4f}",
+            f"{self.tol_top:.4f}",
+            str_measurements,
+            f"{self.mean:.4f}",
+            f"{self.std:.4f}",
+            f"{self.max:.4f}",
+            f"{self.min:.4f}",
+            f"{self.range:.4f}",
+            f"{(len(self.in_tol) / len(self.meas) * 100):.0f}"
+        ]
+        return ",".join(row)
+
